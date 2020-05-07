@@ -37,15 +37,13 @@ public class FeedClient implements CommandLineRunner {
     }
 
     private void readRealtime() throws InterruptedException {
+        Set<Price> prices = new HashSet<>();
         while (true) {
-            Set<Price> prices = new HashSet<>();
             try {
                 Price price = PriceWrapper.wrap(this.sendMessage(TableNameContants.ALL_SYMBOLS));
-                price.setTime(LocalDateTime.now().toString());
-                System.out.println(price);
                 prices.add(price);
             } catch (IllegalArgumentException e) {
-                //System.out.println(e);
+                System.out.println(e);
             }
             if (prices.size() > 10) {
                 priceService.updatePrices(prices);
