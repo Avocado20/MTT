@@ -15,7 +15,7 @@ public class PriceWrapper {
         List<String> price = Arrays.asList(rawPrice.split(" "));
 
         if (price.size() < 4) {
-            throw new IllegalArgumentException("Wrong price format");
+            throw new IllegalArgumentException("Wrong price format: " + price);
         }
         return new Price().setInstrument(price.get(0))
                 .setBid(price.get(2))

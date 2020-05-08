@@ -10,12 +10,12 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PreDestroy;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -28,12 +28,20 @@ public class FeedClient implements CommandLineRunner {
     @Autowired
     private Environment env;
 
+    private Socket clientSocket;
+    private PrintWriter out;
+    private BufferedReader in;
+
     @Override
     public void run(String...args) throws Exception {
         this.startConnection(env.getProperty("socket.address"),Integer.valueOf(env.getProperty("socket.port")));
         this.sendMessage(env.getProperty("socket.user"));
         this.sendMessage(env.getProperty("socket.pass"));
-        this.readRealtime();
+        if (TableNameContants.ACCESS_GRANTED.equals(this.readLine())) {
+            this.readRealtime();
+        } else {
+            throw new Exception("Cannot get access");
+        }
     }
 
     private void readRealtime() throws InterruptedException {
@@ -49,13 +57,9 @@ public class FeedClient implements CommandLineRunner {
                 priceService.updatePrices(prices);
                 prices.clear();
             }
-            Thread.sleep(500);
+            Thread.sleep(Integer.valueOf(env.getProperty("socket.message.period")));
         }
     }
-
-    private Socket clientSocket;
-    private PrintWriter out;
-    private BufferedReader in;
 
     public void startConnection(String ip, int port) {
         try {
@@ -70,8 +74,7 @@ public class FeedClient implements CommandLineRunner {
     public String sendMessage(String msg) {
         try {
             out.println(msg);
-            String resp = in.readLine();
-            return resp;
+            return in.readLine();
         } catch (IOException e) {
             System.out.println("Cannot send message");
         }
@@ -87,10 +90,12 @@ public class FeedClient implements CommandLineRunner {
         return "";
     }
 
+    @PreDestroy
     public void stopConnection() throws IOException {
         in.close();
         out.close();
         clientSocket.close();
+        System.out.println("Disconnected");
     }
 
 }
